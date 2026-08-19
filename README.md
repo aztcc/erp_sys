@@ -1,3 +1,4 @@
+```mermaid
 graph LR
     %% Class Definitions matching Legend Colors
     classDef crm fill:#53b313,stroke:#333,stroke-width:2px,color:#fff;
