@@ -1,140 +1,39 @@
 ```mermaid
-graph LR
-    %% Class Definitions matching Legend Colors
-    classDef crm fill:#53b313,stroke:#333,stroke-width:2px,color:#fff;
-    classDef service fill:#ffee00,stroke:#333,stroke-width:2px,color:#000;
-    classDef sales fill:#ff8c00,stroke:#333,stroke-width:2px,color:#fff;
-    classDef purchasing fill:#008acb,stroke:#333,stroke-width:2px,color:#fff;
-    classDef production fill:#530066,stroke:#333,stroke-width:2px,color:#fff;
-    classDef inventory fill:#737373,stroke:#333,stroke-width:2px,color:#fff;
-    classDef finance fill:#ff0000,stroke:#333,stroke-width:2px,color:#fff;
-    classDef reporting fill:#e066ff,stroke:#333,stroke-width:2px,color:#fff;
+graph TD
+    %% Estilos de Nodos
+    classDef startFinish fill:#2b2d42,stroke:#d90429,stroke-width:2px,color:#fff,font-weight:bold;
+    classDef process fill:#edf2f4,stroke:#8d99ae,stroke-width:1px,color:#2b2d42;
+    classDef decision fill:#ffb703,stroke:#fb8500,stroke-width:1px,color:#023047,font-weight:bold;
+    classDef sapDoc fill:#0077b6,stroke:#03045e,stroke-width:1px,color:#fff;
 
-    %% CRM / Business Partner Master
-    subgraph CRM_SRM ["CRM / SRM"]
-        Activities["Activities"]:::crm
-        Customer["Customer"]:::crm
-        Lead["Lead"]:::crm
-        Supplier["Supplier"]:::crm
-        BPMaster["Business Partner Master"]:::crm
-    end
+    Start([Inicio: Pedido de Venta - VA01]):::startFinish --> CheckStock{¿Hay stock completo disponible?}:::decision
 
-    Activities --- Customer
-    Customer --- Lead
-    Lead --- Supplier
-    Supplier --- BPMaster
+    %% Flujo de Stock Completo
+    CheckStock -->|Sí: Stock 100%| FullDeliv[Crear Entrega Completa - VL01N]:::process
+    FullDeliv --> PostFull[Contabilizar Salida de Mercancías - PGA]:::process
+    PostFull --> InvoiceFull[Factura Final - VF01]:::sapDoc
+    InvoiceFull --> EndFull([Fin de Proceso]):::startFinish
 
-    %% Sales Flow
-    subgraph Sales_Flow ["Sales Process"]
-        Opportunity["Opportunity"]:::sales
-        Pricing["Pricing"]:::sales
-        SalesQuotation["Sales Quotation"]:::sales
-        SalesOrder["Sales Order"]:::sales
-        DeliveryNote["Delivery Note"]:::sales
-        ARInvoice["AR Invoice"]:::sales
-        IncomingPayments["Incoming Payments"]:::sales
-    end
+    %% Flujo de Entrega Parcial
+    CheckStock -->|No: Stock Parcial| PartialCheck{¿El Cliente / Pedido<br/>acepta Entregas Parciales?}:::decision
+    
+    PartialCheck -->|No: Indicador = 'A' / No permitir| Hold[Pedido en Espera / Bloqueado por Stock]:::process
+    Hold --> WaitStock[Recepción de Stock / Fabricación]:::process
+    WaitStock --> CheckStock
 
-    Customer ==> Opportunity
-    Opportunity --> Pricing
-    Pricing --> SalesQuotation
-    SalesQuotation --> SalesOrder
-    SalesOrder --> DeliveryNote
-    DeliveryNote --> ARInvoice
-    ARInvoice --> IncomingPayments
+    PartialCheck -->|Sí: Indicador = Blank / 'B'| CreatePartial[Crear Entrega Parcial 1 - VL01N]:::process
+    
+    CreatePartial --> PGAPartial1[Contabilizar Salida de Mercancías 1 - PGA]:::process
+    PGAPartial1 --> BillingPartial1[Factura Parcial 1 - VF01]:::sapDoc
+    
+    BillingPartial1 --> StatusCheck{¿Queda saldo pendiente<br/>y límite de entregas OK?}:::decision
 
-    %% Service Flow
-    subgraph Service_Flow ["Service"]
-        CustomerEquipmentCard["Customer Equipment Card"]:::service
-        ServiceCall["Service Call"]:::service
-        ServiceContract["Service Contract"]:::service
-        ServiceBilling["Service Billing"]:::service
-    end
+    StatusCheck -->|Sí: Pendiente de entregar| Reproc[Esperar nuevo reabastecimiento]:::process
+    Reproc --> CreatePartial2[Crear Entrega Parcial 2 - VL01N]:::process
+    CreatePartial2 --> PGAPartial2[Contabilizar Salida de Mercancías 2 - PGA]:::process
+    PGAPartial2 --> BillingPartial2[Factura Parcial 2 - VF01]:::sapDoc
+    BillingPartial2 --> StatusCheck
 
-    Customer -.-> CustomerEquipmentCard
-    CustomerEquipmentCard --> ServiceCall
-    ServiceCall --> ServiceContract
-    ServiceContract --> ServiceBilling
-    ServiceBilling -.-> ARInvoice
-
-    %% Purchasing Flow
-    subgraph Purchasing_Flow ["Purchasing Process"]
-        PurchaseRequest["Purchase Request"]:::purchasing
-        PurchaseQuotation["Purchase Quotation"]:::purchasing
-        PurchaseOrder["Purchase Order"]:::purchasing
-        GoodsReceiptPO["Goods Receipt PO"]:::purchasing
-        APInvoice["AP Invoice"]:::purchasing
-        OutgoingPayments["Outgoing Payments"]:::purchasing
-    end
-
-    Customer -.-> PurchaseRequest
-    Lead -.-> PurchaseRequest
-    Supplier -.-> PurchaseQuotation
-    PurchaseRequest --> PurchaseQuotation
-    PurchaseQuotation --> PurchaseOrder
-    PurchaseOrder --> GoodsReceiptPO
-    GoodsReceiptPO --> APInvoice
-    APInvoice --> OutgoingPayments
-
-    %% Inventory & Production Master Data
-    subgraph Inventory_Master ["Inventory & Item Master"]
-        ItemMaster["Item Master"]:::inventory
-        WarehouseMgmt["Warehouse Management"]:::inventory
-    end
-
-    CustomerEquipmentCard --- ItemMaster
-    ItemMaster --- WarehouseMgmt
-    WarehouseMgmt --- SalesOrder
-
-    subgraph Production_Flow ["Production & MRP"]
-        BOM["Bill of Materials"]:::production
-        MRP["Material Requirements Planning"]:::production
-        Sourcing["Sourcing"]:::production
-        DemandPlanning["Demand Planning"]:::inventory
-        ProductionOrder["Production Order"]:::production
-        IssueToProduction["Issue to Production"]:::production
-        ReceiptFromProduction["Receipt from Production"]:::production
-    end
-
-    BOM --> MRP
-    MRP --> Sourcing
-    Sourcing --> PurchaseOrder
-    SalesOrder --- ProductionOrder
-    ProductionOrder --> IssueToProduction
-    IssueToProduction --> ReceiptFromProduction
-
-    %% Finance & Accounting
-    subgraph Finance_Flow ["Finance"]
-        ChartOfAccounts["Chart of Accounts"]:::finance
-        GLAccounts["General Ledger Accounts"]:::finance
-        GLDetermination["G/L Account Determination"]:::finance
-        CostAccounting["Cost Accounting"]:::finance
-        JournalEntries["Journal Entries"]:::finance
-        AP_AR["AP / AR"]:::finance
-        CashManagement["Cash Management"]:::finance
-        Reconciliation["Reconciliation"]:::finance
-        FinancialReporting["Financial Reporting"]:::finance
-    end
-
-    ChartOfAccounts --> GLAccounts
-    GLAccounts --> GLDetermination
-    GLDetermination --> CostAccounting
-    CostAccounting --> JournalEntries
-    DeliveryNote --- JournalEntries
-    APInvoice --- AP_AR
-    AP_AR --- CashManagement
-    CashManagement --- Reconciliation
-    Reconciliation --- FinancialReporting
-
-    %% Reporting Module
-    subgraph Reporting_Flow ["Reporting"]
-        BackorderReporting["Backorder Reporting"]:::reporting
-        InventoryAuditReport["Inventory Audit Report"]:::reporting
-        AccountBalancesReport["Account Balances Report"]:::reporting
-        ProductReporting["Product Reporting"]:::reporting
-    end
-
-    ProductionOrder -.- BackorderReporting
-    JournalEntries --- InventoryAuditReport
-    APInvoice -.- AccountBalancesReport
-    FinancialReporting --- ProductReporting
+    StatusCheck -->|No: Pedido completado o cerrado| CompleteDoc[Estatus del Pedido: Concluido / Cerrado]:::process
+    CompleteDoc --> EndPartial([Fin del Proceso Parcial]):::startFinish
+```
