@@ -1,4 +1,3 @@
-```mermaid
 graph TD
     subgraph Planificador ["Rol: Planificador / Usuario"]
         A([Inicio: Definir Pedidos y Previsiones]) --> B[Ejecutar Asistente de MRP]
@@ -29,7 +28,9 @@ graph TD
     class BPF bpf;
 ```[cite: 6]
 
-### Puntos clave que valida este flujo:
-1. **Validación inicial de integridad:** El sistema frena o excluye automáticamente a cualquier socio de negocio inactivo o bloqueado antes de procesar las demandas brutas[cite: 2, 5].
-2. **Parametrización logística:** Aplica correctamente los tiempos de entrega (*Lead Time*), mínimos de compra (*MOQ*) y asignación del proveedor preferente[cite: 1, 2].
-3. **Trazabilidad documental:** Concluye con la generación de los documentos de compra heredando las condiciones comerciales pactadas con el socio de negocio[cite: 1, 4].
+### Pasos rápidos para agregarlo a tu repositorio de GitHub:
+
+1. En tu repositorio, haz clic en **Add file** -> **Create new file**.
+2. Nómbralo con la extensión `.md` (por ejemplo, `diagrama.md`) para que GitHub lo renderice automáticamente como una página bonita.
+3. Pega el bloque anterior de Markdown que incluye las etiquetas de ```mermaid ... ```.
+4. Haz clic en **Commit changes...** para guardar los cambios. GitHub detectará la sintaxis y mostrará el diagrama visualmente de inmediato.
