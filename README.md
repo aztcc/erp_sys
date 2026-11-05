@@ -1,140 +1,35 @@
 ```mermaid
-graph LR
-    %% Class Definitions matching Legend Colors
-    classDef crm fill:#53b313,stroke:#333,stroke-width:2px,color:#fff;
-    classDef service fill:#ffee00,stroke:#333,stroke-width:2px,color:#000;
-    classDef sales fill:#ff8c00,stroke:#333,stroke-width:2px,color:#fff;
-    classDef purchasing fill:#008acb,stroke:#333,stroke-width:2px,color:#fff;
-    classDef production fill:#530066,stroke:#333,stroke-width:2px,color:#fff;
-    classDef inventory fill:#737373,stroke:#333,stroke-width:2px,color:#fff;
-    classDef finance fill:#ff0000,stroke:#333,stroke-width:2px,color:#fff;
-    classDef reporting fill:#e066ff,stroke:#333,stroke-width:2px,color:#fff;
-
-    %% CRM / Business Partner Master
-    subgraph CRM_SRM ["CRM / SRM"]
-        Activities["Activities"]:::crm
-        Customer["Customer"]:::crm
-        Lead["Lead"]:::crm
-        Supplier["Supplier"]:::crm
-        BPMaster["Business Partner Master"]:::crm
+graph TD
+    subgraph Planificador ["Rol: Planificador / Usuario"]
+        A([Inicio: Definir Pedidos y Previsiones]) --> B[Ejecutar Asistente de MRP]
+        G[Revisar Informe de Recomendaciones] --> H{¿Aprobar Recomendaciones?}
+        H -- Sí --> I[Convertir Recomendaciones a Órdenes de Compra]
     end
 
-    Activities --- Customer
-    Customer --- Lead
-    Lead --- Supplier
-    Supplier --- BPMaster
-
-    %% Sales Flow
-    subgraph Sales_Flow ["Sales Process"]
-        Opportunity["Opportunity"]:::sales
-        Pricing["Pricing"]:::sales
-        SalesQuotation["Sales Quotation"]:::sales
-        SalesOrder["Sales Order"]:::sales
-        DeliveryNote["Delivery Note"]:::sales
-        ARInvoice["AR Invoice"]:::sales
-        IncomingPayments["Incoming Payments"]:::sales
+    subgraph MRP ["Rol: Sistema / Motor de MRP"]
+        B --> C{¿Socio de Negocio Activo / No Bloqueado?}
+        C -- No --> C1[Excluir automáticamente de cálculos de demanda/abastecimiento]
+        C -- Sí --> D[Consolidar Demanda Bruta:<br/>- Sales Orders<br/>- Forecasts]
+        D --> E[Aplicar Reglas de Negocio de Proveedores:<br/>- Asignar Proveedor Preferente<br/>- Calcular Lead Time y Fechas de Liberación<br/>- Ajustar por Múltiplos y MOQ]
+        E --> F[Agrupar Recomendaciones por Proveedor]
+        F --> G
+        I --> J[Generar Documentos Preliminares / Órdenes de Compra<br/>Heredando precios y acuerdos marco]
     end
 
-    Customer ==> Opportunity
-    Opportunity --> Pricing
-    Pricing --> SalesQuotation
-    SalesQuotation --> SalesOrder
-    SalesOrder --> DeliveryNote
-    DeliveryNote --> ARInvoice
-    ARInvoice --> IncomingPayments
-
-    %% Service Flow
-    subgraph Service_Flow ["Service"]
-        CustomerEquipmentCard["Customer Equipment Card"]:::service
-        ServiceCall["Service Call"]:::service
-        ServiceContract["Service Contract"]:::service
-        ServiceBilling["Service Billing"]:::service
+    subgraph BPF ["Rol: Socios de Negocio (Proveedores / Clientes)"]
+        J --> K([Fin: Envío de Órdenes de Compra al Proveedor])
     end
 
-    Customer -.-> CustomerEquipmentCard
-    CustomerEquipmentCard --> ServiceCall
-    ServiceCall --> ServiceContract
-    ServiceContract --> ServiceBilling
-    ServiceBilling -.-> ARInvoice
+    classDef planificador stroke:#818cf8,fill:#eef2ff;
+    classDef mrp stroke:#2dd4bf,fill:#f0fdfa;
+    classDef bpf stroke:#a78bfa,fill:#f5f3ff;
+    
+    class Planificador planificador;
+    class MRP mrp;
+    class BPF bpf;
+```[cite: 6]
 
-    %% Purchasing Flow
-    subgraph Purchasing_Flow ["Purchasing Process"]
-        PurchaseRequest["Purchase Request"]:::purchasing
-        PurchaseQuotation["Purchase Quotation"]:::purchasing
-        PurchaseOrder["Purchase Order"]:::purchasing
-        GoodsReceiptPO["Goods Receipt PO"]:::purchasing
-        APInvoice["AP Invoice"]:::purchasing
-        OutgoingPayments["Outgoing Payments"]:::purchasing
-    end
-
-    Customer -.-> PurchaseRequest
-    Lead -.-> PurchaseRequest
-    Supplier -.-> PurchaseQuotation
-    PurchaseRequest --> PurchaseQuotation
-    PurchaseQuotation --> PurchaseOrder
-    PurchaseOrder --> GoodsReceiptPO
-    GoodsReceiptPO --> APInvoice
-    APInvoice --> OutgoingPayments
-
-    %% Inventory & Production Master Data
-    subgraph Inventory_Master ["Inventory & Item Master"]
-        ItemMaster["Item Master"]:::inventory
-        WarehouseMgmt["Warehouse Management"]:::inventory
-    end
-
-    CustomerEquipmentCard --- ItemMaster
-    ItemMaster --- WarehouseMgmt
-    WarehouseMgmt --- SalesOrder
-
-    subgraph Production_Flow ["Production & MRP"]
-        BOM["Bill of Materials"]:::production
-        MRP["Material Requirements Planning"]:::production
-        Sourcing["Sourcing"]:::production
-        DemandPlanning["Demand Planning"]:::inventory
-        ProductionOrder["Production Order"]:::production
-        IssueToProduction["Issue to Production"]:::production
-        ReceiptFromProduction["Receipt from Production"]:::production
-    end
-
-    BOM --> MRP
-    MRP --> Sourcing
-    Sourcing --> PurchaseOrder
-    SalesOrder --- ProductionOrder
-    ProductionOrder --> IssueToProduction
-    IssueToProduction --> ReceiptFromProduction
-
-    %% Finance & Accounting
-    subgraph Finance_Flow ["Finance"]
-        ChartOfAccounts["Chart of Accounts"]:::finance
-        GLAccounts["General Ledger Accounts"]:::finance
-        GLDetermination["G/L Account Determination"]:::finance
-        CostAccounting["Cost Accounting"]:::finance
-        JournalEntries["Journal Entries"]:::finance
-        AP_AR["AP / AR"]:::finance
-        CashManagement["Cash Management"]:::finance
-        Reconciliation["Reconciliation"]:::finance
-        FinancialReporting["Financial Reporting"]:::finance
-    end
-
-    ChartOfAccounts --> GLAccounts
-    GLAccounts --> GLDetermination
-    GLDetermination --> CostAccounting
-    CostAccounting --> JournalEntries
-    DeliveryNote --- JournalEntries
-    APInvoice --- AP_AR
-    AP_AR --- CashManagement
-    CashManagement --- Reconciliation
-    Reconciliation --- FinancialReporting
-
-    %% Reporting Module
-    subgraph Reporting_Flow ["Reporting"]
-        BackorderReporting["Backorder Reporting"]:::reporting
-        InventoryAuditReport["Inventory Audit Report"]:::reporting
-        AccountBalancesReport["Account Balances Report"]:::reporting
-        ProductReporting["Product Reporting"]:::reporting
-    end
-
-    ProductionOrder -.- BackorderReporting
-    JournalEntries --- InventoryAuditReport
-    APInvoice -.- AccountBalancesReport
-    FinancialReporting --- ProductReporting
+### Puntos clave que valida este flujo:
+1. **Validación inicial de integridad:** El sistema frena o excluye automáticamente a cualquier socio de negocio inactivo o bloqueado antes de procesar las demandas brutas[cite: 2, 5].
+2. **Parametrización logística:** Aplica correctamente los tiempos de entrega (*Lead Time*), mínimos de compra (*MOQ*) y asignación del proveedor preferente[cite: 1, 2].
+3. **Trazabilidad documental:** Concluye con la generación de los documentos de compra heredando las condiciones comerciales pactadas con el socio de negocio[cite: 1, 4].
